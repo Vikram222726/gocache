@@ -61,7 +61,7 @@ func InsertItemToCache(w http.ResponseWriter, r *http.Request){
 		removeTailNode()
 	}
 
-	// Add this new node inside the Doubly Linked list
+	// Add this new node on the head of the Doubly Linked list
 	newNode.RightPointer = header
 	header.LeftPointer = &newNode
 	header = &newNode
@@ -179,7 +179,6 @@ func DeleteCacheItem(w http.ResponseWriter, r *http.Request){
 
 	fmt.Printf("Deleting key: %s from cache", keyValue)
 	itemNode, itemPresent := cacheMap[keyValue]
-	fmt.Println(keyValue, itemPresent)
 
 	if !itemPresent{
 		json.NewEncoder(w).Encode(fmt.Sprintf("Key: %s not present in cache", keyValue))
