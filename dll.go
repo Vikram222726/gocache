@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func removeTailNode(){
+func removeTailNode() {
 	newTailNode := tail.LeftPointer
 	tail.LeftPointer = nil
 	newTailNode.RightPointer = nil
@@ -17,7 +17,7 @@ func removeTailNode(){
 }
 
 // This function creates a doubly linked list
-func InsertItemToCache(w http.ResponseWriter, r *http.Request){
+func InsertItemToCache(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Started inserting new item to cache")
 	w.Header().Set("Content-Type", "application/json")
 
@@ -38,7 +38,7 @@ func InsertItemToCache(w http.ResponseWriter, r *http.Request){
 	itemTTL := newNode.TTL
 
 	itemNode, itemPresent := cacheMap[itemKey]
-	if itemPresent{
+	if itemPresent {
 		itemNode.Value = itemVal
 		itemNode.TTL = itemTTL
 		json.NewEncoder(w).Encode(ResultSet{Key: itemKey, Value: itemVal, TTL: itemTTL})
@@ -47,7 +47,7 @@ func InsertItemToCache(w http.ResponseWriter, r *http.Request){
 
 	mutexLock.Lock()
 
-	if header == nil && tail == nil{
+	if header == nil && tail == nil {
 		// Means the cache is empty currently..
 		header, tail = &newNode, &newNode
 		json.NewEncoder(w).Encode(ResultSet{Key: itemKey, Value: itemVal, TTL: itemTTL})
@@ -55,7 +55,7 @@ func InsertItemToCache(w http.ResponseWriter, r *http.Request){
 		cacheItemsCount++
 		mutexLock.Unlock()
 		return
-	}else if cacheItemsCount == cacheSize {
+	} else if cacheItemsCount == cacheSize {
 		// Cache is full we'll have to remove the last item from tail and also from map
 		delete(cacheMap, tail.Key)
 		removeTailNode()
@@ -76,7 +76,7 @@ func InsertItemToCache(w http.ResponseWriter, r *http.Request){
 }
 
 // This function will return all items from the cache...
-func GetAllCacheItems(w http.ResponseWriter, r *http.Request){
+func GetAllCacheItems(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Fetching all items from cache")
 	w.Header().Set("Content-Type", "application/json")
 
@@ -84,9 +84,9 @@ func GetAllCacheItems(w http.ResponseWriter, r *http.Request){
 	resultSet := []ResultSet{}
 	for headPtr != nil {
 		nodeData := ResultSet{
-			Key: headPtr.Key,
+			Key:   headPtr.Key,
 			Value: headPtr.Value,
-			TTL: headPtr.TTL,
+			TTL:   headPtr.TTL,
 		}
 		resultSet = append(resultSet, nodeData)
 		headPtr = headPtr.RightPointer
@@ -99,28 +99,30 @@ func GetAllCacheItems(w http.ResponseWriter, r *http.Request){
 }
 
 // This function will fetch single item from map and return the result
-func GetSingleCacheItem(w http.ResponseWriter, r *http.Request){
+func GetSingleCacheItem(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	keyValue := r.FormValue("key")
 
 	fmt.Println("Fetching and returning value for key: ", keyValue)
 	itemNode, itemPresent := cacheMap[keyValue]
 
-	if !itemPresent{
+	if !itemPresent {
 		json.NewEncoder(w).Encode(fmt.Sprintf("Key: %s not present in cache", keyValue))
 		return
 	}
 
-	if itemNode != header{
+	if itemNode != header {
 		leftNode := itemNode.LeftPointer
 		rightNode := itemNode.RightPointer
-		if leftNode != nil{
+		if leftNode != nil {
 			leftNode.RightPointer = rightNode
 		}
 		if rightNode != nil {
 			rightNode.LeftPointer = leftNode
 		}
-		header.LeftPointer = itemNode
+		if tail == itemNode {
+			tail = leftNode
+		}
 		itemNode.LeftPointer = nil
 		itemNode.RightPointer = header
 		header = itemNode
@@ -130,7 +132,7 @@ func GetSingleCacheItem(w http.ResponseWriter, r *http.Request){
 }
 
 // This function will update the key's value in our cache
-func UpdateCacheItem(w http.ResponseWriter, r *http.Request){
+func UpdateCacheItem(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var updatedData DoublyLinkedList
@@ -140,9 +142,9 @@ func UpdateCacheItem(w http.ResponseWriter, r *http.Request){
 	}
 
 	fmt.Println("Updating Cache Item for key:", updatedData.Key)
-	
+
 	itemNode, itemPresent := cacheMap[updatedData.Key]
-	if !itemPresent{
+	if !itemPresent {
 		json.NewEncoder(w).Encode(fmt.Sprintf("Key: %s not present in cache", updatedData.Key))
 		return
 	}
@@ -153,10 +155,10 @@ func UpdateCacheItem(w http.ResponseWriter, r *http.Request){
 	mutexLock.Lock()
 
 	// Add logic to update this node in DLL
-	if itemNode != header{
+	if itemNode != header {
 		leftNode := itemNode.LeftPointer
 		rightNode := itemNode.RightPointer
-		if leftNode != nil{
+		if leftNode != nil {
 			leftNode.RightPointer = rightNode
 		}
 		if rightNode != nil {
@@ -172,7 +174,7 @@ func UpdateCacheItem(w http.ResponseWriter, r *http.Request){
 	mutexLock.Unlock()
 }
 
-func DeleteCacheItem(w http.ResponseWriter, r *http.Request){
+func DeleteCacheItem(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	keyValue := r.FormValue("key")
@@ -180,7 +182,7 @@ func DeleteCacheItem(w http.ResponseWriter, r *http.Request){
 	fmt.Printf("Deleting key: %s from cache", keyValue)
 	itemNode, itemPresent := cacheMap[keyValue]
 
-	if !itemPresent{
+	if !itemPresent {
 		json.NewEncoder(w).Encode(fmt.Sprintf("Key: %s not present in cache", keyValue))
 		return
 	}
@@ -193,16 +195,16 @@ func DeleteCacheItem(w http.ResponseWriter, r *http.Request){
 	// Add logic to delete key from DLL
 	leftNode := itemNode.LeftPointer
 	rightNode := itemNode.RightPointer
-	if header == itemNode{
+	if header == itemNode {
 		header = rightNode
 	}
-	if tail == itemNode{
+	if tail == itemNode {
 		tail = leftNode
 	}
-	if leftNode != nil{
+	if leftNode != nil {
 		leftNode.RightPointer = rightNode
 	}
-	if rightNode != nil{
+	if rightNode != nil {
 		rightNode.LeftPointer = leftNode
 	}
 	itemNode.LeftPointer, itemNode.RightPointer = nil, nil
